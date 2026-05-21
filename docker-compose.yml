@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  ifood-migrator:
+    build:
+      context: .
+    ports:
+      - "${PORT:-3001}:3001"
+    environment:
+      SCRAPER_STRATEGY: ${SCRAPER_STRATEGY:-auto}
+      PORT: 3001
+      API_KEY: ${API_KEY:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      MAX_CONCURRENT_JOBS: ${MAX_CONCURRENT_JOBS:-2}
+      SCRAPE_TIMEOUT_S: ${SCRAPE_TIMEOUT_S:-60}
+      MAX_ITEMS_DETAIL: ${MAX_ITEMS_DETAIL:-40}
+    restart: unless-stopped
+    mem_limit: 1.5g
+    shm_size: "256mb"
+    security_opt:
+      - no-new-privileges:true
