@@ -14,13 +14,27 @@ const progressLog = $("progress-log");
 const jsonOutput = $("json-output");
 const resultActions = $("result-actions");
 const historyBody = $("history-body");
+const metaStrategy = $("meta-strategy");
+const metaJobs = $("meta-jobs");
+const apiBaseUrlEl = $("api-base-url");
+const apiAuthNote = $("api-auth-note");
 
 let currentResult = null;
 let currentJobId = null;
 let eventSource = null;
+let authRequired = false;
+
+const API_BASE = window.location.origin;
 
 function headers() {
   const h = { "Content-Type": "application/json" };
+  const key = apiKeyInput.value.trim();
+  if (key) h["X-Api-Key"] = key;
+  return h;
+}
+
+function apiHeadersOnly() {
+  const h = {};
   const key = apiKeyInput.value.trim();
   if (key) h["X-Api-Key"] = key;
   return h;
@@ -59,13 +73,77 @@ function finishJob() {
   setRunningUi(false);
   currentJobId = null;
   loadHistory();
+  refreshHealthMeta();
 }
 
-async function checkApiKeyRequired() {
+function switchTab(tabId) {
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    const active = btn.dataset.tab === tabId;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  document.querySelectorAll(".tab-panel").forEach((panel) => {
+    const isTarget = panel.id === `panel-${tabId}`;
+    panel.classList.toggle("active", isTarget);
+    panel.hidden = !isTarget;
+  });
+  if (tabId === "history") loadHistory();
+}
+
+function buildCurlBlocks() {
+  const base = API_BASE;
+  const keyLine = authRequired ? '  -H "X-Api-Key: SUA_CHAVE" \\\n' : "";
+
+  const blocks = {
+    "curl-migrate": `curl -X POST "${base}/api/migrate" \\
+  -H "Content-Type: application/json" \\${keyLine}
+  -d '{"url":"https://www.ifood.com.br/delivery/cidade/loja/uuid"}'`,
+    "curl-status": `curl${authRequired ? ' -H "X-Api-Key: SUA_CHAVE"' : ""} \\
+  "${base}/api/migrate/JOB_ID"`,
+    "curl-sse": `// JavaScript (navegador / Node com polyfill)
+const es = new EventSource("${base}/api/migrate/JOB_ID/events");
+es.addEventListener("progress", (e) => console.log(JSON.parse(e.data)));
+es.addEventListener("done", (e) => console.log(JSON.parse(e.data)));
+es.addEventListener("error", (e) => console.log(e.data ? JSON.parse(e.data) : "erro"));
+es.addEventListener("cancelled", (e) => console.log(JSON.parse(e.data)));`,
+    "curl-cancel": `curl -X POST${authRequired ? ' -H "X-Api-Key: SUA_CHAVE"' : ""} \\
+  "${base}/api/migrate/JOB_ID/cancel"`,
+    "curl-list": `curl${authRequired ? ' -H "X-Api-Key: SUA_CHAVE"' : ""} \\
+  "${base}/api/scrapes?limit=20&status=done"`,
+    "curl-detail": `curl${authRequired ? ' -H "X-Api-Key: SUA_CHAVE"' : ""} \\
+  "${base}/api/scrapes/JOB_ID"`,
+    "curl-delete": `curl -X DELETE${authRequired ? ' -H "X-Api-Key: SUA_CHAVE"' : ""} \\
+  "${base}/api/scrapes/JOB_ID"`,
+    "curl-health": `curl "${base}/api/health"`,
+  };
+
+  Object.entries(blocks).forEach(([id, text]) => {
+    const el = $(id);
+    if (el) el.textContent = text;
+  });
+
+  if (apiBaseUrlEl) apiBaseUrlEl.textContent = base;
+}
+
+async function refreshHealthMeta() {
   try {
     const res = await fetch("/api/health");
     if (!res.ok) return;
-    apiKeyRow.classList.remove("hidden");
+    const data = await res.json();
+    authRequired = Boolean(data.auth_required);
+    metaStrategy.textContent = `Estratégia: ${data.strategy || "—"}`;
+    metaJobs.textContent = `Jobs: ${data.active_jobs ?? 0}/${data.max_concurrent_jobs ?? "—"}`;
+
+    apiKeyRow.classList.toggle("hidden", !authRequired);
+    if (authRequired) apiKeyInput.setAttribute("required", "required");
+    else apiKeyInput.removeAttribute("required");
+
+    if (apiAuthNote) {
+      apiAuthNote.textContent = authRequired
+        ? "Autenticação: ativa — envie o header X-Api-Key em rotas protegidas (exceto /api/health)."
+        : "Autenticação: desativada — defina API_KEY no .env para exigir o header X-Api-Key.";
+    }
+    buildCurlBlocks();
   } catch {
     /* ignore */
   }
@@ -73,7 +151,7 @@ async function checkApiKeyRequired() {
 
 async function loadHistory() {
   try {
-    const res = await fetch("/api/scrapes?limit=15", { headers: headers() });
+    const res = await fetch("/api/scrapes?limit=15", { headers: apiHeadersOnly() });
     if (!res.ok) {
       historyBody.innerHTML = `<tr><td colspan="4" class="muted">Erro ao carregar histórico (${res.status})</td></tr>`;
       return;
@@ -86,7 +164,6 @@ async function loadHistory() {
     historyBody.innerHTML = data.items
       .map((item) => {
         const canCancel = item.status === "pending" || item.status === "running";
-        const isActive = currentJobId === item.id && canCancel;
         return `
       <tr>
         <td>${escapeHtml(item.store_name || truncateUrl(item.url))}</td>
@@ -104,7 +181,10 @@ async function loadHistory() {
     historyBody.querySelectorAll("[data-action]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const id = btn.dataset.id;
-        if (btn.dataset.action === "view") await openScrape(id);
+        if (btn.dataset.action === "view") {
+          switchTab("extract");
+          await openScrape(id);
+        }
         if (btn.dataset.action === "cancel") await cancelJob(id);
         if (btn.dataset.action === "delete") await deleteScrape(id);
       });
@@ -116,7 +196,7 @@ async function loadHistory() {
 
 async function openScrape(jobId) {
   try {
-    const res = await fetch(`/api/scrapes/${jobId}`, { headers: headers() });
+    const res = await fetch(`/api/scrapes/${jobId}`, { headers: apiHeadersOnly() });
     if (!res.ok) {
       setStatus(`Erro ao carregar job: ${res.status}`, "error");
       return;
@@ -128,7 +208,10 @@ async function openScrape(jobId) {
       setStatus(`Carregado: ${data.result.name || jobId}`, "done");
     } else if (data.status === "error" || data.status === "cancelled") {
       jsonOutput.textContent = data.error || "Sem detalhes";
-      setStatus(data.status === "cancelled" ? "Consulta cancelada" : "Scraping com erro", data.status === "cancelled" ? "error" : "error");
+      setStatus(
+        data.status === "cancelled" ? "Consulta cancelada" : "Scraping com erro",
+        "error"
+      );
     } else {
       jsonOutput.textContent = JSON.stringify(data, null, 2);
       setStatus(`Status: ${data.status}`, "running");
@@ -171,7 +254,7 @@ async function deleteScrape(jobId) {
   try {
     const res = await fetch(`/api/scrapes/${jobId}`, {
       method: "DELETE",
-      headers: headers(),
+      headers: apiHeadersOnly(),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -242,6 +325,13 @@ async function startMigration() {
     return;
   }
 
+  if (authRequired && !apiKeyInput.value.trim()) {
+    setStatus("Informe a API Key (obrigatória neste servidor).", "error");
+    apiKeyRow.classList.remove("hidden");
+    apiKeyInput.focus();
+    return;
+  }
+
   closeEventSource();
   clearProgress();
   currentResult = null;
@@ -267,6 +357,7 @@ async function startMigration() {
 
     eventSource = new EventSource(`${body.events_url}`);
     bindSseEvents(currentJobId);
+    refreshHealthMeta();
   } catch (e) {
     setStatus(e.message, "error");
     jsonOutput.textContent = e.message;
@@ -291,6 +382,25 @@ function formatDate(iso) {
     return iso;
   }
 }
+
+async function copyBlock(blockId) {
+  const el = $(blockId);
+  if (!el) return;
+  try {
+    await navigator.clipboard.writeText(el.textContent);
+    setStatus("Exemplo copiado para a área de transferência.", "done");
+  } catch {
+    setStatus("Não foi possível copiar.", "error");
+  }
+}
+
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+});
+
+document.querySelectorAll(".btn-copy").forEach((btn) => {
+  btn.addEventListener("click", () => copyBlock(btn.dataset.copy));
+});
 
 btnStart.addEventListener("click", startMigration);
 btnCancel.addEventListener("click", () => {
@@ -328,5 +438,7 @@ urlInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !btnStart.disabled) startMigration();
 });
 
-checkApiKeyRequired();
+apiKeyInput.addEventListener("input", buildCurlBlocks);
+
+refreshHealthMeta();
 loadHistory();

@@ -3,73 +3,285 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>iFood Migrator</title>
+  <title>iFood Menu Extractor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
-  <header class="header">
-    <h1>iFood Migrator</h1>
-    <p class="subtitle">Cole a URL da loja no iFood e extraia o cardápio em JSON</p>
+  <div class="ambient" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="eyebrow">Scraper de cardápio</span>
+        <h1>iFood Menu Extractor</h1>
+        <p class="subtitle">Extraia o cardápio completo de uma loja iFood em JSON — pela interface ou pela API REST.</p>
+      </div>
+      <div class="header-meta" id="health-meta">
+        <span class="meta-pill" id="meta-strategy">—</span>
+        <span class="meta-pill" id="meta-jobs">—</span>
+      </div>
+    </div>
   </header>
 
-  <main class="layout">
-    <section class="panel panel-form">
-      <label for="url">URL da loja (iFood)</label>
-      <input
-        id="url"
-        type="url"
-        placeholder="https://www.ifood.com.br/delivery/..."
-        autocomplete="off"
-      />
+  <nav class="tab-nav" role="tablist" aria-label="Seções">
+    <button type="button" class="tab-btn active" role="tab" aria-selected="true" data-tab="extract" id="tab-btn-extract">
+      Extração
+    </button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="history" id="tab-btn-history">
+      Histórico
+    </button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="api" id="tab-btn-api">
+      API &amp; uso
+    </button>
+  </nav>
 
-      <div id="api-key-row" class="api-key-row hidden">
-        <label for="api-key">API Key</label>
-        <input id="api-key" type="password" placeholder="X-Api-Key (se configurada no servidor)" />
-      </div>
+  <main class="main">
+    <!-- Extração -->
+    <section class="tab-panel active" id="panel-extract" role="tabpanel" aria-labelledby="tab-btn-extract">
+      <ol class="steps" aria-label="Como usar na interface">
+        <li class="step">
+          <span class="step-num">1</span>
+          <span class="step-text">Cole a URL da loja no iFood</span>
+        </li>
+        <li class="step">
+          <span class="step-num">2</span>
+          <span class="step-text">Inicie a migração e acompanhe o progresso</span>
+        </li>
+        <li class="step">
+          <span class="step-num">3</span>
+          <span class="step-text">Copie ou baixe o JSON do cardápio</span>
+        </li>
+      </ol>
 
-      <div class="actions">
-        <button id="btn-start" type="button">Iniciar migração</button>
-        <button id="btn-cancel" type="button" class="btn-secondary hidden">Cancelar consulta</button>
-        <button id="btn-clear" type="button" class="btn-secondary">Limpar</button>
-      </div>
+      <div class="workspace">
+        <div class="bezel">
+          <div class="panel panel-form">
+            <h2 class="panel-title">Nova extração</h2>
 
-      <div id="status" class="status hidden"></div>
-      <ul id="progress-log" class="progress-log"></ul>
-    </section>
+            <label for="url">URL da loja (iFood)</label>
+            <input
+              id="url"
+              type="url"
+              placeholder="https://www.ifood.com.br/delivery/cidade/loja/uuid"
+              autocomplete="off"
+              spellcheck="false"
+            />
 
-    <section class="panel panel-result">
-      <div class="panel-head">
-        <h2>Resultado JSON</h2>
-        <div class="result-actions hidden" id="result-actions">
-          <button id="btn-copy" type="button" class="btn-secondary">Copiar</button>
-          <button id="btn-download" type="button" class="btn-secondary">Baixar .json</button>
+            <div id="api-key-row" class="api-key-row hidden">
+              <label for="api-key">Chave de API <span class="label-hint">(obrigatória no servidor)</span></label>
+              <input id="api-key" type="password" placeholder="Cole o valor de API_KEY do .env" autocomplete="off" />
+            </div>
+
+            <div class="actions">
+              <button id="btn-start" type="button" class="btn-primary">
+                <span>Iniciar migração</span>
+                <span class="btn-icon" aria-hidden="true">→</span>
+              </button>
+              <button id="btn-cancel" type="button" class="btn-secondary hidden">Cancelar</button>
+              <button id="btn-clear" type="button" class="btn-ghost">Limpar</button>
+            </div>
+
+            <div id="status" class="status hidden" role="status"></div>
+            <ul id="progress-log" class="progress-log" aria-label="Log de progresso"></ul>
+          </div>
+        </div>
+
+        <div class="bezel">
+          <div class="panel panel-result">
+            <div class="panel-head">
+              <h2 class="panel-title">Resultado JSON</h2>
+              <div class="result-actions hidden" id="result-actions">
+                <button id="btn-copy" type="button" class="btn-secondary btn-sm">Copiar</button>
+                <button id="btn-download" type="button" class="btn-secondary btn-sm">Baixar .json</button>
+              </div>
+            </div>
+            <pre id="json-output" class="json-output">Aguardando migração…</pre>
+          </div>
         </div>
       </div>
-      <pre id="json-output" class="json-output">Aguardando migração…</pre>
     </section>
 
-    <section class="panel panel-history">
-      <div class="panel-head">
-        <h2>Histórico de scrapings</h2>
-        <button id="btn-refresh-history" type="button" class="btn-secondary">Atualizar</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Loja</th>
-              <th>Status</th>
-              <th>Data</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody id="history-body">
-            <tr><td colspan="4" class="muted">Carregando…</td></tr>
-          </tbody>
-        </table>
+    <!-- Histórico -->
+    <section class="tab-panel" id="panel-history" role="tabpanel" aria-labelledby="tab-btn-history" hidden>
+      <div class="bezel bezel-wide">
+        <div class="panel panel-history">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Histórico de scrapings</h2>
+              <p class="panel-desc">Consultas persistidas no SQLite local. Reabra, cancele jobs ativos ou remova registros.</p>
+            </div>
+            <button id="btn-refresh-history" type="button" class="btn-secondary btn-sm">Atualizar</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Loja</th>
+                  <th>Status</th>
+                  <th>Data</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="history-body">
+                <tr><td colspan="4" class="muted">Carregando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
+
+    <!-- API -->
+    <section class="tab-panel" id="panel-api" role="tabpanel" aria-labelledby="tab-btn-api" hidden>
+      <div class="api-intro bezel">
+        <div class="panel">
+          <h2 class="panel-title">Integração via API REST</h2>
+          <p>
+            Todos os endpoints abaixo são assíncronos: você inicia um job com <code>POST /api/migrate</code>,
+            acompanha com <strong>SSE</strong> ou <strong>polling</strong>, e obtém o JSON quando <code>status</code> for
+            <code>done</code>. Documentação interativa em
+            <a href="/docs" target="_blank" rel="noopener">/docs</a> (OpenAPI).
+          </p>
+          <ul class="api-notes">
+            <li>Base URL desta instância: <code id="api-base-url">—</code></li>
+            <li id="api-auth-note">Autenticação: desativada (defina <code>API_KEY</code> no <code>.env</code> para exigir header).</li>
+            <li>Header quando autenticação ativa: <code>X-Api-Key: sua-chave</code></li>
+            <li>Timeout padrão do scraping: configurável via <code>SCRAPE_TIMEOUT_S</code> no servidor</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="api-grid">
+        <article class="api-card bezel">
+          <div class="panel">
+            <div class="endpoint-head">
+              <span class="method post">POST</span>
+              <code class="endpoint-path">/api/migrate</code>
+            </div>
+            <p>Inicia extração. Resposta <strong>202</strong> com <code>job_id</code>, URLs de status, eventos SSE e cancelamento.</p>
+            <pre class="code-block" id="curl-migrate">curl -X POST "$BASE/api/migrate" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://www.ifood.com.br/delivery/..."}'</pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-migrate">Copiar cURL</button>
+          </div>
+        </article>
+
+        <article class="api-card bezel">
+          <div class="panel">
+            <div class="endpoint-head">
+              <span class="method get">GET</span>
+              <code class="endpoint-path">/api/migrate/{job_id}</code>
+            </div>
+            <p>Polling do job: <code>status</code>, <code>progress</code>, <code>result</code> (quando concluído) ou <code>error</code>.</p>
+            <pre class="code-block" id="curl-status">curl "$BASE/api/migrate/JOB_ID"</pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-status">Copiar cURL</button>
+          </div>
+        </article>
+
+        <article class="api-card bezel">
+          <div class="panel">
+            <div class="endpoint-head">
+              <span class="method get">SSE</span>
+              <code class="endpoint-path">/api/migrate/{job_id}/events</code>
+            </div>
+            <p>Stream em tempo real. Eventos: <code>progress</code>, <code>done</code>, <code>error</code>, <code>cancelled</code>. A interface web usa <code>EventSource</code> neste endpoint.</p>
+            <pre class="code-block" id="curl-sse"># JavaScript (navegador)
+const es = new EventSource("$BASE/api/migrate/JOB_ID/events");
+es.addEventListener("progress", (e) => console.log(JSON.parse(e.data)));
+es.addEventListener("done", (e) => console.log(JSON.parse(e.data)));</pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-sse">Copiar exemplo</button>
+          </div>
+        </article>
+
+        <article class="api-card bezel">
+          <div class="panel">
+            <div class="endpoint-head">
+              <span class="method post">POST</span>
+              <code class="endpoint-path">/api/migrate/{job_id}/cancel</code>
+            </div>
+            <p>Cancela job em <code>pending</code> ou <code>running</code>.</p>
+            <pre class="code-block" id="curl-cancel">curl -X POST "$BASE/api/migrate/JOB_ID/cancel"</pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-cancel">Copiar cURL</button>
+          </div>
+        </article>
+
+        <article class="api-card bezel">
+          <div class="panel">
+            <div class="endpoint-head">
+              <span class="method get">GET</span>
+              <code class="endpoint-path">/api/scrapes</code>
+            </div>
+            <p>Lista histórico. Query: <code>limit</code>, <code>offset</code>, <code>status</code> (pending, running, done, error, cancelled).</p>
+            <pre class="code-block" id="curl-list">curl "$BASE/api/scrapes?limit=20&status=done"</pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-list">Copiar cURL</button>
+          </div>
+        </article>
+
+        <article class="api-card bezel">
+          <div class="panel">
+            <div class="endpoint-head">
+              <span class="method get">GET</span>
+              <code class="endpoint-path">/api/scrapes/{job_id}</code>
+            </div>
+            <p>Detalhe de um scraping (mesmo formato do polling de migrate).</p>
+            <pre class="code-block" id="curl-detail">curl "$BASE/api/scrapes/JOB_ID"</pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-detail">Copiar cURL</button>
+          </div>
+        </article>
+
+        <article class="api-card bezel">
+          <div class="panel">
+            <div class="endpoint-head">
+              <span class="method delete">DELETE</span>
+              <code class="endpoint-path">/api/scrapes/{job_id}</code>
+            </div>
+            <p>Remove do histórico. Se ainda estiver ativo, cancela antes de apagar.</p>
+            <pre class="code-block" id="curl-delete">curl -X DELETE "$BASE/api/scrapes/JOB_ID"</pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-delete">Copiar cURL</button>
+          </div>
+        </article>
+
+        <article class="api-card bezel">
+          <div class="panel">
+            <div class="endpoint-head">
+              <span class="method get">GET</span>
+              <code class="endpoint-path">/api/health</code>
+            </div>
+            <p>Health check público (sem API key). Retorna estratégia, jobs ativos e estatísticas.</p>
+            <pre class="code-block" id="curl-health">curl "$BASE/api/health"</pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-health">Copiar cURL</button>
+          </div>
+        </article>
+      </div>
+
+      <details class="api-flow bezel">
+        <summary>Fluxo recomendado (polling)</summary>
+        <div class="panel">
+          <ol class="flow-list">
+            <li><code>POST /api/migrate</code> com a URL da loja → guarde <code>job_id</code></li>
+            <li>Em loop: <code>GET /api/migrate/{job_id}</code> a cada 2–5 s até status terminal</li>
+            <li>Se <code>done</code>, use o campo <code>result</code> como JSON do cardápio</li>
+            <li>Para UX em tempo real, prefira SSE em <code>events_url</code> em vez de polling agressivo</li>
+          </ol>
+          <p class="panel-desc">
+            Expondo via ngrok: defina <code>API_KEY</code> no <code>.env</code> e envie
+            <code>X-Api-Key</code> em todas as rotas protegidas (exceto <code>/api/health</code> e SSE de eventos).
+          </p>
+        </div>
+      </details>
+    </section>
   </main>
+
+  <footer class="site-footer">
+    <span>iFood Menu Extractor</span>
+    <a href="/docs" target="_blank" rel="noopener">OpenAPI /docs</a>
+  </footer>
 
   <script src="/static/app.js"></script>
 </body>

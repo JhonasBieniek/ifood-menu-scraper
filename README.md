@@ -126,9 +126,3 @@ Histórico persistido em SQLite (`DATABASE_PATH`, padrão `./data/scraper.db`). 
 ```bash
 docker compose up --build
 ```
-
-## Testes
-
-```bash
-pytest -q
-```

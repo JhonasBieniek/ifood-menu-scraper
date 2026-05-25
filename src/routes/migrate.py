@@ -226,6 +226,7 @@ async def health():
     return {
         "status": "ok",
         "database": database_status,
+        "auth_required": bool(config.API_KEY),
         "active_jobs": _active_jobs,
         "max_concurrent_jobs": config.MAX_CONCURRENT_JOBS,
         "strategy": config.SCRAPER_STRATEGY,
