@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from dotenv import load_dotenv
 
@@ -23,6 +25,7 @@ class Config:
         "yes",
     )
     CORS_ORIGINS: list[str] = os.getenv("CORS_ORIGINS", "*").split(",")
+    DATABASE_PATH: str = os.getenv("DATABASE_PATH", "./data/scraper.db")
 
 
 config = Config()

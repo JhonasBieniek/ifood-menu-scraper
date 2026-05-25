@@ -1,0 +1,289 @@
+:root {
+  --bg: #0f1419;
+  --surface: #1a2332;
+  --border: #2d3a4f;
+  --text: #e7ecf3;
+  --muted: #8b9cb3;
+  --accent: #ea1d2c;
+  --accent-hover: #c41825;
+  --ok: #22c55e;
+  --warn: #f59e0b;
+  --err: #ef4444;
+  --font: "Segoe UI", system-ui, sans-serif;
+  --mono: "SF Mono", "Fira Code", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.layout {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.5rem 2rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (min-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr 1fr;
+  }
+  .panel-history {
+    grid-column: 1 / -1;
+  }
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+input[type="url"],
+input[type="password"] {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+}
+
+input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.api-key-row {
+  margin-top: 0.25rem;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+button {
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 0.6rem 1.1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 500;
+}
+
+button:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--border);
+  color: var(--text);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #3d4f66;
+}
+
+.btn-link {
+  background: none;
+  color: var(--accent);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.status {
+  margin-top: 1rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.status.running {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warn);
+}
+
+.status.done {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--ok);
+}
+
+.status.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--err);
+}
+
+.progress-log {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  max-height: 160px;
+  overflow-y: auto;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.progress-log li {
+  padding: 0.2rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.json-output {
+  margin: 0;
+  padding: 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  overflow: auto;
+  max-height: 420px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.badge.pending,
+.badge.running {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--warn);
+}
+
+.badge.done {
+  background: rgba(34, 197, 94, 0.2);
+  color: var(--ok);
+}
+
+.badge.error {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--err);
+}
+
+.badge.cancelled {
+  background: rgba(139, 156, 179, 0.25);
+  color: var(--muted);
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.btn-link.btn-danger {
+  color: var(--err);
+}
+
+.btn-link.btn-warn {
+  color: var(--warn);
+}
+
+#btn-cancel:not(.hidden) {
+  background: var(--border);
+  color: var(--warn);
+}
+
+#btn-cancel:not(.hidden):hover:not(:disabled) {
+  background: #3d4f66;
+}

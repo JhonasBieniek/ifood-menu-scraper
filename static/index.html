@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>iFood Migrator</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="header">
+    <h1>iFood Migrator</h1>
+    <p class="subtitle">Cole a URL da loja no iFood e extraia o cardápio em JSON</p>
+  </header>
+
+  <main class="layout">
+    <section class="panel panel-form">
+      <label for="url">URL da loja (iFood)</label>
+      <input
+        id="url"
+        type="url"
+        placeholder="https://www.ifood.com.br/delivery/..."
+        autocomplete="off"
+      />
+
+      <div id="api-key-row" class="api-key-row hidden">
+        <label for="api-key">API Key</label>
+        <input id="api-key" type="password" placeholder="X-Api-Key (se configurada no servidor)" />
+      </div>
+
+      <div class="actions">
+        <button id="btn-start" type="button">Iniciar migração</button>
+        <button id="btn-cancel" type="button" class="btn-secondary hidden">Cancelar consulta</button>
+        <button id="btn-clear" type="button" class="btn-secondary">Limpar</button>
+      </div>
+
+      <div id="status" class="status hidden"></div>
+      <ul id="progress-log" class="progress-log"></ul>
+    </section>
+
+    <section class="panel panel-result">
+      <div class="panel-head">
+        <h2>Resultado JSON</h2>
+        <div class="result-actions hidden" id="result-actions">
+          <button id="btn-copy" type="button" class="btn-secondary">Copiar</button>
+          <button id="btn-download" type="button" class="btn-secondary">Baixar .json</button>
+        </div>
+      </div>
+      <pre id="json-output" class="json-output">Aguardando migração…</pre>
+    </section>
+
+    <section class="panel panel-history">
+      <div class="panel-head">
+        <h2>Histórico de scrapings</h2>
+        <button id="btn-refresh-history" type="button" class="btn-secondary">Atualizar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Loja</th>
+              <th>Status</th>
+              <th>Data</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="history-body">
+            <tr><td colspan="4" class="muted">Carregando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

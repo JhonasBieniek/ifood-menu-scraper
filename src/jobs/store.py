@@ -1,93 +1,128 @@
-import uuid
+from __future__ import annotations
+
 import asyncio
-from datetime import datetime, timedelta
-from typing import Any, Callable
-from dataclasses import dataclass, field
-from enum import Enum
+import uuid
+
+from src.db.repository import get_repository
+from src.jobs.models import Job, JobStatus, ProgressEvent
+
+_active_cache: dict[str, Job] = {}
+_cancelled_ids: set[str] = set()
+_running_tasks: dict[str, asyncio.Task] = {}
 
 
-class JobStatus(str, Enum):
-    PENDING = "pending"
-    RUNNING = "running"
-    DONE = "done"
-    ERROR = "error"
+def register_running_task(job_id: str, task: asyncio.Task) -> None:
+    _running_tasks[job_id] = task
 
 
-@dataclass
-class ProgressEvent:
-    message: str
-    step: int | None
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+def unregister_running_task(job_id: str) -> None:
+    _running_tasks.pop(job_id, None)
 
 
-@dataclass
-class Job:
-    id: str
-    url: str
-    status: JobStatus = JobStatus.PENDING
-    progress: list[ProgressEvent] = field(default_factory=list)
-    result: dict | None = None
-    error: str | None = None
-    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
-
-    def touch(self):
-        self.updated_at = datetime.now().isoformat()
+def request_cancel(job_id: str) -> None:
+    _cancelled_ids.add(job_id)
 
 
-# ─── Store global ────────────────────────────────────────────
-_jobs: dict[str, Job] = {}
+def is_cancelled(job_id: str) -> bool:
+    return job_id in _cancelled_ids
 
 
-def create_job(url: str) -> Job:
+def clear_cancel(job_id: str) -> None:
+    _cancelled_ids.discard(job_id)
+
+
+async def create_job(url: str) -> Job:
     job = Job(id=str(uuid.uuid4()), url=url)
-    _jobs[job.id] = job
+    repo = get_repository()
+    await repo.create(job)
+    _active_cache[job.id] = job
     return job
 
 
-def get_job(job_id: str) -> Job | None:
-    return _jobs.get(job_id)
+async def get_job(job_id: str) -> Job | None:
+    if job_id in _active_cache:
+        return _active_cache[job_id]
+    return await get_repository().get(job_id)
 
 
-def update_job(job_id: str, **kwargs) -> Job | None:
-    job = _jobs.get(job_id)
+async def update_job(job_id: str, **kwargs) -> Job | None:
+    job = await get_job(job_id)
     if not job:
         return None
+
     for k, v in kwargs.items():
         setattr(job, k, v)
     job.touch()
-    return job
+
+    repo = get_repository()
+    updated = await repo.update(
+        job_id,
+        status=job.status,
+        result=job.result,
+        error=job.error,
+        progress=job.progress,
+    )
+
+    if updated and job.status in (
+        JobStatus.DONE,
+        JobStatus.ERROR,
+        JobStatus.CANCELLED,
+    ):
+        _active_cache.pop(job_id, None)
+    elif updated:
+        _active_cache[job_id] = updated
+
+    return updated
 
 
-def add_progress(job_id: str, message: str, step: int | None = None):
-    job = _jobs.get(job_id)
-    if job:
-        job.progress.append(ProgressEvent(message=message, step=step))
-        job.touch()
+async def add_progress(job_id: str, message: str, step: int | None = None) -> None:
+    job = await get_job(job_id)
+    if not job:
+        return
+    job.progress.append(ProgressEvent(message=message, step=step))
+    job.touch()
+    await get_repository().update(job_id, progress=job.progress)
+    _active_cache[job_id] = job
 
 
-def get_stats() -> dict:
-    counts = {s: 0 for s in JobStatus}
-    for j in _jobs.values():
-        counts[j.status] += 1
-    return {s.value: counts[s] for s in JobStatus} | {"total": len(_jobs)}
+async def get_stats() -> dict:
+    return await get_repository().get_stats()
 
 
-# ─── Limpeza automática (TTL 1 hora) ─────────────────────────
-async def _cleanup_loop():
-    while True:
-        await asyncio.sleep(900)  # roda a cada 15 minutos
-        cutoff = datetime.now() - timedelta(hours=1)
-        expired = [
-            jid for jid, j in _jobs.items()
-            if j.status in (JobStatus.DONE, JobStatus.ERROR)
-            and datetime.fromisoformat(j.created_at) < cutoff
-        ]
-        for jid in expired:
-            del _jobs[jid]
-        if expired:
-            print(f"[JobStore] {len(expired)} jobs expirados removidos.")
+async def cancel_job(job_id: str) -> Job | None:
+    job = await get_job(job_id)
+    if not job:
+        return None
+
+    if job.status in (JobStatus.DONE, JobStatus.ERROR, JobStatus.CANCELLED):
+        return job
+
+    request_cancel(job_id)
+    task = _running_tasks.get(job_id)
+    if task and not task.done():
+        task.cancel()
+
+    await add_progress(job_id, "Cancelado pelo usuário", None)
+    return await update_job(
+        job_id,
+        status=JobStatus.CANCELLED,
+        error="Cancelado pelo usuário",
+    )
 
 
-def start_cleanup_task():
-    asyncio.create_task(_cleanup_loop())
+async def delete_job(job_id: str) -> bool:
+    job = await get_job(job_id)
+    if not job:
+        return False
+
+    if job.status in (JobStatus.PENDING, JobStatus.RUNNING):
+        await cancel_job(job_id)
+
+    task = _running_tasks.get(job_id)
+    if task and not task.done():
+        task.cancel()
+    unregister_running_task(job_id)
+    clear_cancel(job_id)
+    _active_cache.pop(job_id, None)
+
+    return await get_repository().delete(job_id)
