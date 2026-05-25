@@ -1,4 +1,5 @@
 const $ = (id) => document.getElementById(id);
+const t = (key, vars) => I18n.t(key, vars);
 
 const urlInput = $("url");
 const apiKeyInput = $("api-key");
@@ -23,6 +24,7 @@ let currentResult = null;
 let currentJobId = null;
 let eventSource = null;
 let authRequired = false;
+let jsonIdleText = t("json.waiting");
 
 const API_BASE = window.location.origin;
 
@@ -90,29 +92,38 @@ function switchTab(tabId) {
   if (tabId === "history") loadHistory();
 }
 
+function curlKeyHeader() {
+  const key = t("curl.keyPlaceholder");
+  return authRequired ? ` -H "X-Api-Key: ${key}"` : "";
+}
+
+function curlKeyHeaderMultiline() {
+  const key = t("curl.keyPlaceholder");
+  return authRequired ? `  -H "X-Api-Key: ${key}" \\\n` : "";
+}
+
 function buildCurlBlocks() {
   const base = API_BASE;
-  const keyLine = authRequired ? '  -H "X-Api-Key: SUA_CHAVE" \\\n' : "";
 
   const blocks = {
     "curl-migrate": `curl -X POST "${base}/api/migrate" \\
-  -H "Content-Type: application/json" \\${keyLine}
+  -H "Content-Type: application/json" \\${curlKeyHeaderMultiline()}
   -d '{"url":"https://www.ifood.com.br/delivery/cidade/loja/uuid"}'`,
-    "curl-status": `curl${authRequired ? ' -H "X-Api-Key: SUA_CHAVE"' : ""} \\
+    "curl-status": `curl${curlKeyHeader()} \\
   "${base}/api/migrate/JOB_ID"`,
-    "curl-sse": `// JavaScript (navegador / Node com polyfill)
+    "curl-sse": `${t("curl.sseComment")}
 const es = new EventSource("${base}/api/migrate/JOB_ID/events");
 es.addEventListener("progress", (e) => console.log(JSON.parse(e.data)));
 es.addEventListener("done", (e) => console.log(JSON.parse(e.data)));
-es.addEventListener("error", (e) => console.log(e.data ? JSON.parse(e.data) : "erro"));
+es.addEventListener("error", (e) => console.log(e.data ? JSON.parse(e.data) : "${t("curl.sseError")}"));
 es.addEventListener("cancelled", (e) => console.log(JSON.parse(e.data)));`,
-    "curl-cancel": `curl -X POST${authRequired ? ' -H "X-Api-Key: SUA_CHAVE"' : ""} \\
+    "curl-cancel": `curl -X POST${curlKeyHeader()} \\
   "${base}/api/migrate/JOB_ID/cancel"`,
-    "curl-list": `curl${authRequired ? ' -H "X-Api-Key: SUA_CHAVE"' : ""} \\
+    "curl-list": `curl${curlKeyHeader()} \\
   "${base}/api/scrapes?limit=20&status=done"`,
-    "curl-detail": `curl${authRequired ? ' -H "X-Api-Key: SUA_CHAVE"' : ""} \\
+    "curl-detail": `curl${curlKeyHeader()} \\
   "${base}/api/scrapes/JOB_ID"`,
-    "curl-delete": `curl -X DELETE${authRequired ? ' -H "X-Api-Key: SUA_CHAVE"' : ""} \\
+    "curl-delete": `curl -X DELETE${curlKeyHeader()} \\
   "${base}/api/scrapes/JOB_ID"`,
     "curl-health": `curl "${base}/api/health"`,
   };
@@ -131,17 +142,18 @@ async function refreshHealthMeta() {
     if (!res.ok) return;
     const data = await res.json();
     authRequired = Boolean(data.auth_required);
-    metaStrategy.textContent = `Estratégia: ${data.strategy || "—"}`;
-    metaJobs.textContent = `Jobs: ${data.active_jobs ?? 0}/${data.max_concurrent_jobs ?? "—"}`;
+    metaStrategy.textContent = t("meta.strategy", { value: data.strategy || "—" });
+    metaJobs.textContent = t("meta.jobs", {
+      active: data.active_jobs ?? 0,
+      max: data.max_concurrent_jobs ?? "—",
+    });
 
     apiKeyRow.classList.toggle("hidden", !authRequired);
     if (authRequired) apiKeyInput.setAttribute("required", "required");
     else apiKeyInput.removeAttribute("required");
 
     if (apiAuthNote) {
-      apiAuthNote.textContent = authRequired
-        ? "Autenticação: ativa — envie o header X-Api-Key em rotas protegidas (exceto /api/health)."
-        : "Autenticação: desativada — defina API_KEY no .env para exigir o header X-Api-Key.";
+      apiAuthNote.innerHTML = t(authRequired ? "api.note.authOn" : "api.note.authOff");
     }
     buildCurlBlocks();
   } catch {
@@ -150,15 +162,17 @@ async function refreshHealthMeta() {
 }
 
 async function loadHistory() {
+  historyBody.innerHTML = `<tr><td colspan="4" class="muted">${escapeHtml(t("history.loading"))}</td></tr>`;
+
   try {
     const res = await fetch("/api/scrapes?limit=15", { headers: apiHeadersOnly() });
     if (!res.ok) {
-      historyBody.innerHTML = `<tr><td colspan="4" class="muted">Erro ao carregar histórico (${res.status})</td></tr>`;
+      historyBody.innerHTML = `<tr><td colspan="4" class="muted">${escapeHtml(t("history.errorLoad", { status: res.status }))}</td></tr>`;
       return;
     }
     const data = await res.json();
     if (!data.items.length) {
-      historyBody.innerHTML = `<tr><td colspan="4" class="muted">Nenhum scraping ainda</td></tr>`;
+      historyBody.innerHTML = `<tr><td colspan="4" class="muted">${escapeHtml(t("history.empty"))}</td></tr>`;
       return;
     }
     historyBody.innerHTML = data.items
@@ -170,9 +184,9 @@ async function loadHistory() {
         <td><span class="badge ${item.status}">${item.status}</span></td>
         <td>${formatDate(item.created_at)}</td>
         <td class="row-actions">
-          <button type="button" class="btn-link" data-action="view" data-id="${item.id}">Ver JSON</button>
-          ${canCancel ? `<button type="button" class="btn-link btn-warn" data-action="cancel" data-id="${item.id}">Cancelar</button>` : ""}
-          <button type="button" class="btn-link btn-danger" data-action="delete" data-id="${item.id}">Apagar</button>
+          <button type="button" class="btn-link" data-action="view" data-id="${item.id}">${escapeHtml(t("action.viewJson"))}</button>
+          ${canCancel ? `<button type="button" class="btn-link btn-warn" data-action="cancel" data-id="${item.id}">${escapeHtml(t("action.cancel"))}</button>` : ""}
+          <button type="button" class="btn-link btn-danger" data-action="delete" data-id="${item.id}">${escapeHtml(t("action.delete"))}</button>
         </td>
       </tr>`;
       })
@@ -190,7 +204,7 @@ async function loadHistory() {
       });
     });
   } catch (e) {
-    historyBody.innerHTML = `<tr><td colspan="4" class="muted">Falha de rede: ${escapeHtml(e.message)}</td></tr>`;
+    historyBody.innerHTML = `<tr><td colspan="4" class="muted">${escapeHtml(t("history.networkFail", { message: e.message }))}</td></tr>`;
   }
 }
 
@@ -198,23 +212,23 @@ async function openScrape(jobId) {
   try {
     const res = await fetch(`/api/scrapes/${jobId}`, { headers: apiHeadersOnly() });
     if (!res.ok) {
-      setStatus(`Erro ao carregar job: ${res.status}`, "error");
+      setStatus(t("status.jobLoadError", { status: res.status }), "error");
       return;
     }
     const data = await res.json();
     urlInput.value = data.url;
     if (data.status === "done" && data.result) {
       showJson(data.result);
-      setStatus(`Carregado: ${data.result.name || jobId}`, "done");
+      setStatus(t("status.loaded", { name: data.result.name || jobId }), "done");
     } else if (data.status === "error" || data.status === "cancelled") {
-      jsonOutput.textContent = data.error || "Sem detalhes";
+      jsonOutput.textContent = data.error || t("json.noDetails");
       setStatus(
-        data.status === "cancelled" ? "Consulta cancelada" : "Scraping com erro",
+        data.status === "cancelled" ? t("status.cancelled") : t("status.scrapeError"),
         "error"
       );
     } else {
       jsonOutput.textContent = JSON.stringify(data, null, 2);
-      setStatus(`Status: ${data.status}`, "running");
+      setStatus(t("status.jobStatus", { status: data.status }), "running");
     }
   } catch (e) {
     setStatus(e.message, "error");
@@ -222,7 +236,7 @@ async function openScrape(jobId) {
 }
 
 async function cancelJob(jobId) {
-  if (!confirm("Cancelar esta consulta em andamento?")) return;
+  if (!confirm(t("confirm.cancel"))) return;
 
   try {
     const res = await fetch(`/api/migrate/${jobId}/cancel`, {
@@ -231,16 +245,16 @@ async function cancelJob(jobId) {
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(body.detail || `Erro ${res.status}`);
+      throw new Error(body.detail || t("status.errorGeneric", { status: res.status }));
     }
 
     if (currentJobId === jobId) {
       closeEventSource();
-      jsonOutput.textContent = "Cancelado pelo usuário";
-      setStatus("Consulta cancelada.", "error");
+      jsonOutput.textContent = t("json.cancelledByUser");
+      setStatus(t("status.cancelled"), "error");
       finishJob();
     } else {
-      setStatus("Consulta cancelada.", "done");
+      setStatus(t("status.cancelled"), "done");
       loadHistory();
     }
   } catch (e) {
@@ -249,7 +263,7 @@ async function cancelJob(jobId) {
 }
 
 async function deleteScrape(jobId) {
-  if (!confirm("Apagar esta consulta do histórico? Esta ação não pode ser desfeita.")) return;
+  if (!confirm(t("confirm.delete"))) return;
 
   try {
     const res = await fetch(`/api/scrapes/${jobId}`, {
@@ -258,19 +272,19 @@ async function deleteScrape(jobId) {
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(body.detail || `Erro ${res.status}`);
+      throw new Error(body.detail || t("status.errorGeneric", { status: res.status }));
     }
 
     if (currentJobId === jobId) {
       closeEventSource();
       currentJobId = null;
       setRunningUi(false);
-      jsonOutput.textContent = "Aguardando migração…";
+      jsonOutput.textContent = jsonIdleText;
       resultActions.classList.add("hidden");
       statusEl.classList.add("hidden");
     }
 
-    setStatus("Consulta removida do histórico.", "done");
+    setStatus(t("status.removed"), "done");
     loadHistory();
   } catch (e) {
     setStatus(e.message, "error");
@@ -293,27 +307,27 @@ function bindSseEvents(jobId) {
   eventSource.addEventListener("done", (ev) => {
     const data = JSON.parse(ev.data);
     showJson(data.result);
-    setStatus("Migração concluída.", "done");
+    setStatus(t("status.migrationDone"), "done");
     finishJob();
   });
 
   eventSource.addEventListener("error", (ev) => {
     if (ev.data) {
       const data = JSON.parse(ev.data);
-      jsonOutput.textContent = data.message || "Erro no scraping";
-      setStatus(data.message || "Erro", "error");
+      jsonOutput.textContent = data.message || t("json.scrapeError");
+      setStatus(data.message || t("json.scrapeError"), "error");
     } else if (currentJobId !== jobId) {
       return;
     } else {
-      setStatus("Conexão SSE encerrada ou falhou.", "error");
+      setStatus(t("status.sseFailed"), "error");
     }
     finishJob();
   });
 
   eventSource.addEventListener("cancelled", (ev) => {
     const data = JSON.parse(ev.data);
-    jsonOutput.textContent = data.message || "Cancelado pelo usuário";
-    setStatus("Consulta cancelada.", "error");
+    jsonOutput.textContent = data.message || t("json.cancelledByUser");
+    setStatus(t("status.cancelled"), "error");
     finishJob();
   });
 }
@@ -321,12 +335,12 @@ function bindSseEvents(jobId) {
 async function startMigration() {
   const url = urlInput.value.trim();
   if (!url) {
-    setStatus("Informe a URL da loja.", "error");
+    setStatus(t("status.urlRequired"), "error");
     return;
   }
 
   if (authRequired && !apiKeyInput.value.trim()) {
-    setStatus("Informe a API Key (obrigatória neste servidor).", "error");
+    setStatus(t("status.apiKeyRequired"), "error");
     apiKeyRow.classList.remove("hidden");
     apiKeyInput.focus();
     return;
@@ -336,9 +350,9 @@ async function startMigration() {
   clearProgress();
   currentResult = null;
   resultActions.classList.add("hidden");
-  jsonOutput.textContent = "Iniciando…";
+  jsonOutput.textContent = t("json.starting");
   setRunningUi(true);
-  setStatus("Enviando solicitação…", "running");
+  setStatus(t("status.sending"), "running");
 
   try {
     const res = await fetch("/api/migrate", {
@@ -349,11 +363,11 @@ async function startMigration() {
 
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(body.detail || `Erro ${res.status}`);
+      throw new Error(body.detail || t("status.errorGeneric", { status: res.status }));
     }
 
     currentJobId = body.job_id;
-    setStatus(`Job ${currentJobId} — aguardando progresso…`, "running");
+    setStatus(t("status.jobProgress", { id: currentJobId }), "running");
 
     eventSource = new EventSource(`${body.events_url}`);
     bindSseEvents(currentJobId);
@@ -377,7 +391,7 @@ function truncateUrl(url) {
 
 function formatDate(iso) {
   try {
-    return new Date(iso).toLocaleString("pt-BR");
+    return new Date(iso).toLocaleString(I18n.getDateLocale());
   } catch {
     return iso;
   }
@@ -388,11 +402,28 @@ async function copyBlock(blockId) {
   if (!el) return;
   try {
     await navigator.clipboard.writeText(el.textContent);
-    setStatus("Exemplo copiado para a área de transferência.", "done");
+    setStatus(t("status.exampleCopied"), "done");
   } catch {
-    setStatus("Não foi possível copiar.", "error");
+    setStatus(t("status.copyFailed"), "error");
   }
 }
+
+function onLocaleChange() {
+  const showIdle = !currentJobId && !currentResult;
+  jsonIdleText = t("json.waiting");
+  I18n.applyDom();
+  buildCurlBlocks();
+  refreshHealthMeta();
+
+  const historyTab = $("panel-history");
+  if (historyTab && !historyTab.hidden) loadHistory();
+
+  if (showIdle) jsonOutput.textContent = jsonIdleText;
+}
+
+document.querySelectorAll(".lang-btn").forEach((btn) => {
+  btn.addEventListener("click", () => I18n.setLocale(btn.dataset.lang));
+});
 
 document.querySelectorAll(".tab-btn").forEach((btn) => {
   btn.addEventListener("click", () => switchTab(btn.dataset.tab));
@@ -410,7 +441,7 @@ btnClear.addEventListener("click", () => {
   urlInput.value = "";
   clearProgress();
   statusEl.classList.add("hidden");
-  jsonOutput.textContent = "Aguardando migração…";
+  jsonOutput.textContent = jsonIdleText;
   resultActions.classList.add("hidden");
   currentResult = null;
   closeEventSource();
@@ -420,7 +451,7 @@ btnClear.addEventListener("click", () => {
 btnCopy.addEventListener("click", async () => {
   if (!currentResult) return;
   await navigator.clipboard.writeText(JSON.stringify(currentResult, null, 2));
-  setStatus("JSON copiado.", "done");
+  setStatus(t("status.jsonCopied"), "done");
 });
 btnDownload.addEventListener("click", () => {
   if (!currentResult) return;
@@ -440,5 +471,9 @@ urlInput.addEventListener("keydown", (e) => {
 
 apiKeyInput.addEventListener("input", buildCurlBlocks);
 
+I18n.init(onLocaleChange);
+jsonIdleText = t("json.waiting");
+jsonOutput.textContent = jsonIdleText;
+buildCurlBlocks();
 refreshHealthMeta();
 loadHistory();

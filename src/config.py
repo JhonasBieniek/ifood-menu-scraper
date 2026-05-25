@@ -7,7 +7,7 @@ load_dotenv()
 
 
 class Config:
-    PORT: int = int(os.getenv("PORT", "3001"))
+    PORT: int = int(os.getenv("PORT", "3005"))
     HOST: str = os.getenv("HOST", "0.0.0.0")
     API_KEY: str | None = os.getenv("API_KEY")
 

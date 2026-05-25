@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>iFood Menu Extractor</title>
+  <title>iFood Migrator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -18,87 +18,109 @@
   <header class="site-header">
     <div class="header-inner">
       <div class="brand">
-        <span class="eyebrow">Scraper de cardápio</span>
-        <h1>iFood Menu Extractor</h1>
-        <p class="subtitle">Extraia o cardápio completo de uma loja iFood em JSON — pela interface ou pela API REST.</p>
+        <span class="eyebrow" data-i18n="eyebrow">Extrator de cardápio</span>
+        <h1 data-i18n="page.title">iFood Migrator</h1>
+        <p class="subtitle" data-i18n="subtitle">
+          Extraia o cardápio completo de uma loja iFood em JSON — pela interface ou pela API REST.
+        </p>
       </div>
-      <div class="header-meta" id="health-meta">
-        <span class="meta-pill" id="meta-strategy">—</span>
-        <span class="meta-pill" id="meta-jobs">—</span>
+      <div class="header-tools">
+        <div class="lang-switch" role="group" aria-labelledby="lang-switch-label">
+          <span id="lang-switch-label" class="lang-label" data-i18n="lang.label">Idioma</span>
+          <button type="button" class="lang-btn active" data-lang="pt-BR" aria-pressed="true">
+            <span data-i18n="lang.pt">Português</span>
+          </button>
+          <button type="button" class="lang-btn" data-lang="en" aria-pressed="false">
+            <span data-i18n="lang.en">English</span>
+          </button>
+        </div>
+        <div class="header-meta" id="health-meta">
+          <span class="meta-pill" id="meta-strategy">—</span>
+          <span class="meta-pill" id="meta-jobs">—</span>
+        </div>
       </div>
     </div>
   </header>
 
-  <nav class="tab-nav" role="tablist" aria-label="Seções">
-    <button type="button" class="tab-btn active" role="tab" aria-selected="true" data-tab="extract" id="tab-btn-extract">
+  <nav class="tab-nav" role="tablist" data-i18n-aria="tab.nav.aria" aria-label="Seções">
+    <button type="button" class="tab-btn active" role="tab" aria-selected="true" data-tab="extract" id="tab-btn-extract" data-i18n="tab.extract">
       Extração
     </button>
-    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="history" id="tab-btn-history">
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="history" id="tab-btn-history" data-i18n="tab.history">
       Histórico
     </button>
-    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="api" id="tab-btn-api">
-      API &amp; uso
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="api" id="tab-btn-api" data-i18n="tab.api">
+      API e uso
     </button>
   </nav>
 
   <main class="main">
-    <!-- Extração -->
     <section class="tab-panel active" id="panel-extract" role="tabpanel" aria-labelledby="tab-btn-extract">
-      <ol class="steps" aria-label="Como usar na interface">
+      <ol class="steps" data-i18n-aria="steps.aria" aria-label="Como usar na interface">
         <li class="step">
           <span class="step-num">1</span>
-          <span class="step-text">Cole a URL da loja no iFood</span>
+          <span class="step-text" data-i18n="step.1">Cole a URL da loja no iFood</span>
         </li>
         <li class="step">
           <span class="step-num">2</span>
-          <span class="step-text">Inicie a migração e acompanhe o progresso</span>
+          <span class="step-text" data-i18n="step.2">Inicie a migração e acompanhe o progresso</span>
         </li>
         <li class="step">
           <span class="step-num">3</span>
-          <span class="step-text">Copie ou baixe o JSON do cardápio</span>
+          <span class="step-text" data-i18n="step.3">Copie ou baixe o JSON do cardápio</span>
         </li>
       </ol>
 
       <div class="workspace">
         <div class="bezel">
           <div class="panel panel-form">
-            <h2 class="panel-title">Nova extração</h2>
+            <h2 class="panel-title" data-i18n="panel.newExtraction">Nova extração</h2>
 
-            <label for="url">URL da loja (iFood)</label>
+            <label for="url" data-i18n="label.url">URL da loja (iFood)</label>
             <input
               id="url"
               type="url"
+              data-i18n-placeholder="placeholder.url"
               placeholder="https://www.ifood.com.br/delivery/cidade/loja/uuid"
               autocomplete="off"
               spellcheck="false"
             />
 
             <div id="api-key-row" class="api-key-row hidden">
-              <label for="api-key">Chave de API <span class="label-hint">(obrigatória no servidor)</span></label>
-              <input id="api-key" type="password" placeholder="Cole o valor de API_KEY do .env" autocomplete="off" />
+              <label for="api-key">
+                <span data-i18n="label.apiKey">Chave de API</span>
+                <span class="label-hint" data-i18n="label.apiKeyHint">(obrigatória no servidor)</span>
+              </label>
+              <input
+                id="api-key"
+                type="password"
+                data-i18n-placeholder="placeholder.apiKey"
+                placeholder="Cole o valor de API_KEY do .env"
+                autocomplete="off"
+              />
             </div>
 
             <div class="actions">
               <button id="btn-start" type="button" class="btn-primary">
-                <span>Iniciar migração</span>
+                <span data-i18n="btn.start">Iniciar migração</span>
                 <span class="btn-icon" aria-hidden="true">→</span>
               </button>
-              <button id="btn-cancel" type="button" class="btn-secondary hidden">Cancelar</button>
-              <button id="btn-clear" type="button" class="btn-ghost">Limpar</button>
+              <button id="btn-cancel" type="button" class="btn-secondary hidden" data-i18n="btn.cancel">Cancelar</button>
+              <button id="btn-clear" type="button" class="btn-ghost" data-i18n="btn.clear">Limpar</button>
             </div>
 
             <div id="status" class="status hidden" role="status"></div>
-            <ul id="progress-log" class="progress-log" aria-label="Log de progresso"></ul>
+            <ul id="progress-log" class="progress-log" data-i18n-aria="progress.aria" aria-label="Log de progresso"></ul>
           </div>
         </div>
 
         <div class="bezel">
           <div class="panel panel-result">
             <div class="panel-head">
-              <h2 class="panel-title">Resultado JSON</h2>
+              <h2 class="panel-title" data-i18n="panel.resultJson">Resultado JSON</h2>
               <div class="result-actions hidden" id="result-actions">
-                <button id="btn-copy" type="button" class="btn-secondary btn-sm">Copiar</button>
-                <button id="btn-download" type="button" class="btn-secondary btn-sm">Baixar .json</button>
+                <button id="btn-copy" type="button" class="btn-secondary btn-sm" data-i18n="btn.copy">Copiar</button>
+                <button id="btn-download" type="button" class="btn-secondary btn-sm" data-i18n="btn.download">Baixar .json</button>
               </div>
             </div>
             <pre id="json-output" class="json-output">Aguardando migração…</pre>
@@ -107,29 +129,30 @@
       </div>
     </section>
 
-    <!-- Histórico -->
     <section class="tab-panel" id="panel-history" role="tabpanel" aria-labelledby="tab-btn-history" hidden>
       <div class="bezel bezel-wide">
         <div class="panel panel-history">
           <div class="panel-head">
             <div>
-              <h2 class="panel-title">Histórico de scrapings</h2>
-              <p class="panel-desc">Consultas persistidas no SQLite local. Reabra, cancele jobs ativos ou remova registros.</p>
+              <h2 class="panel-title" data-i18n="history.title">Histórico de scrapings</h2>
+              <p class="panel-desc" data-i18n="history.desc">
+                Consultas persistidas no SQLite local. Reabra, cancele jobs ativos ou remova registros.
+              </p>
             </div>
-            <button id="btn-refresh-history" type="button" class="btn-secondary btn-sm">Atualizar</button>
+            <button id="btn-refresh-history" type="button" class="btn-secondary btn-sm" data-i18n="btn.refresh">Atualizar</button>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Loja</th>
-                  <th>Status</th>
-                  <th>Data</th>
-                  <th>Ações</th>
+                  <th data-i18n="th.store">Loja</th>
+                  <th data-i18n="th.status">Status</th>
+                  <th data-i18n="th.date">Data</th>
+                  <th data-i18n="th.actions">Ações</th>
                 </tr>
               </thead>
               <tbody id="history-body">
-                <tr><td colspan="4" class="muted">Carregando…</td></tr>
+                <tr><td colspan="4" class="muted" data-i18n="history.loading">Carregando…</td></tr>
               </tbody>
             </table>
           </div>
@@ -137,22 +160,22 @@
       </div>
     </section>
 
-    <!-- API -->
     <section class="tab-panel" id="panel-api" role="tabpanel" aria-labelledby="tab-btn-api" hidden>
       <div class="api-intro bezel">
         <div class="panel">
-          <h2 class="panel-title">Integração via API REST</h2>
-          <p>
-            Todos os endpoints abaixo são assíncronos: você inicia um job com <code>POST /api/migrate</code>,
-            acompanha com <strong>SSE</strong> ou <strong>polling</strong>, e obtém o JSON quando <code>status</code> for
-            <code>done</code>. Documentação interativa em
-            <a href="/docs" target="_blank" rel="noopener">/docs</a> (OpenAPI).
-          </p>
+          <h2 class="panel-title" data-i18n="api.title">Integração via API REST</h2>
+          <p data-i18n-html="api.intro"></p>
           <ul class="api-notes">
-            <li>Base URL desta instância: <code id="api-base-url">—</code></li>
-            <li id="api-auth-note">Autenticação: desativada (defina <code>API_KEY</code> no <code>.env</code> para exigir header).</li>
-            <li>Header quando autenticação ativa: <code>X-Api-Key: sua-chave</code></li>
-            <li>Timeout padrão do scraping: configurável via <code>SCRAPE_TIMEOUT_S</code> no servidor</li>
+            <li>
+              <span data-i18n="api.note.baseUrl">Base URL desta instância:</span>
+              <code id="api-base-url">—</code>
+            </li>
+            <li id="api-auth-note" data-i18n-html="api.note.authOff"></li>
+            <li>
+              <span data-i18n="api.note.header">Header quando autenticação ativa:</span>
+              <code data-i18n="api.note.headerValue">X-Api-Key: sua-chave</code>
+            </li>
+            <li data-i18n-html="api.note.timeout"></li>
           </ul>
         </div>
       </div>
@@ -164,11 +187,9 @@
               <span class="method post">POST</span>
               <code class="endpoint-path">/api/migrate</code>
             </div>
-            <p>Inicia extração. Resposta <strong>202</strong> com <code>job_id</code>, URLs de status, eventos SSE e cancelamento.</p>
-            <pre class="code-block" id="curl-migrate">curl -X POST "$BASE/api/migrate" \
-  -H "Content-Type: application/json" \
-  -d '{"url":"https://www.ifood.com.br/delivery/..."}'</pre>
-            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-migrate">Copiar cURL</button>
+            <p data-i18n-html="api.ep.migrate.desc"></p>
+            <pre class="code-block" id="curl-migrate"></pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-migrate" data-i18n="btn.copyCurl">Copiar cURL</button>
           </div>
         </article>
 
@@ -178,9 +199,9 @@
               <span class="method get">GET</span>
               <code class="endpoint-path">/api/migrate/{job_id}</code>
             </div>
-            <p>Polling do job: <code>status</code>, <code>progress</code>, <code>result</code> (quando concluído) ou <code>error</code>.</p>
-            <pre class="code-block" id="curl-status">curl "$BASE/api/migrate/JOB_ID"</pre>
-            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-status">Copiar cURL</button>
+            <p data-i18n-html="api.ep.status.desc"></p>
+            <pre class="code-block" id="curl-status"></pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-status" data-i18n="btn.copyCurl">Copiar cURL</button>
           </div>
         </article>
 
@@ -190,12 +211,9 @@
               <span class="method get">SSE</span>
               <code class="endpoint-path">/api/migrate/{job_id}/events</code>
             </div>
-            <p>Stream em tempo real. Eventos: <code>progress</code>, <code>done</code>, <code>error</code>, <code>cancelled</code>. A interface web usa <code>EventSource</code> neste endpoint.</p>
-            <pre class="code-block" id="curl-sse"># JavaScript (navegador)
-const es = new EventSource("$BASE/api/migrate/JOB_ID/events");
-es.addEventListener("progress", (e) => console.log(JSON.parse(e.data)));
-es.addEventListener("done", (e) => console.log(JSON.parse(e.data)));</pre>
-            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-sse">Copiar exemplo</button>
+            <p data-i18n-html="api.ep.sse.desc"></p>
+            <pre class="code-block" id="curl-sse"></pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-sse" data-i18n="btn.copyExample">Copiar exemplo</button>
           </div>
         </article>
 
@@ -205,9 +223,9 @@ es.addEventListener("done", (e) => console.log(JSON.parse(e.data)));</pre>
               <span class="method post">POST</span>
               <code class="endpoint-path">/api/migrate/{job_id}/cancel</code>
             </div>
-            <p>Cancela job em <code>pending</code> ou <code>running</code>.</p>
-            <pre class="code-block" id="curl-cancel">curl -X POST "$BASE/api/migrate/JOB_ID/cancel"</pre>
-            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-cancel">Copiar cURL</button>
+            <p data-i18n-html="api.ep.cancel.desc"></p>
+            <pre class="code-block" id="curl-cancel"></pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-cancel" data-i18n="btn.copyCurl">Copiar cURL</button>
           </div>
         </article>
 
@@ -217,9 +235,9 @@ es.addEventListener("done", (e) => console.log(JSON.parse(e.data)));</pre>
               <span class="method get">GET</span>
               <code class="endpoint-path">/api/scrapes</code>
             </div>
-            <p>Lista histórico. Query: <code>limit</code>, <code>offset</code>, <code>status</code> (pending, running, done, error, cancelled).</p>
-            <pre class="code-block" id="curl-list">curl "$BASE/api/scrapes?limit=20&status=done"</pre>
-            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-list">Copiar cURL</button>
+            <p data-i18n-html="api.ep.list.desc"></p>
+            <pre class="code-block" id="curl-list"></pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-list" data-i18n="btn.copyCurl">Copiar cURL</button>
           </div>
         </article>
 
@@ -229,9 +247,9 @@ es.addEventListener("done", (e) => console.log(JSON.parse(e.data)));</pre>
               <span class="method get">GET</span>
               <code class="endpoint-path">/api/scrapes/{job_id}</code>
             </div>
-            <p>Detalhe de um scraping (mesmo formato do polling de migrate).</p>
-            <pre class="code-block" id="curl-detail">curl "$BASE/api/scrapes/JOB_ID"</pre>
-            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-detail">Copiar cURL</button>
+            <p data-i18n-html="api.ep.detail.desc"></p>
+            <pre class="code-block" id="curl-detail"></pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-detail" data-i18n="btn.copyCurl">Copiar cURL</button>
           </div>
         </article>
 
@@ -241,9 +259,9 @@ es.addEventListener("done", (e) => console.log(JSON.parse(e.data)));</pre>
               <span class="method delete">DELETE</span>
               <code class="endpoint-path">/api/scrapes/{job_id}</code>
             </div>
-            <p>Remove do histórico. Se ainda estiver ativo, cancela antes de apagar.</p>
-            <pre class="code-block" id="curl-delete">curl -X DELETE "$BASE/api/scrapes/JOB_ID"</pre>
-            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-delete">Copiar cURL</button>
+            <p data-i18n-html="api.ep.delete.desc"></p>
+            <pre class="code-block" id="curl-delete"></pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-delete" data-i18n="btn.copyCurl">Copiar cURL</button>
           </div>
         </article>
 
@@ -253,36 +271,34 @@ es.addEventListener("done", (e) => console.log(JSON.parse(e.data)));</pre>
               <span class="method get">GET</span>
               <code class="endpoint-path">/api/health</code>
             </div>
-            <p>Health check público (sem API key). Retorna estratégia, jobs ativos e estatísticas.</p>
-            <pre class="code-block" id="curl-health">curl "$BASE/api/health"</pre>
-            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-health">Copiar cURL</button>
+            <p data-i18n-html="api.ep.health.desc"></p>
+            <pre class="code-block" id="curl-health"></pre>
+            <button type="button" class="btn-ghost btn-sm btn-copy" data-copy="curl-health" data-i18n="btn.copyCurl">Copiar cURL</button>
           </div>
         </article>
       </div>
 
       <details class="api-flow bezel">
-        <summary>Fluxo recomendado (polling)</summary>
+        <summary data-i18n="api.flow.summary">Fluxo recomendado (polling)</summary>
         <div class="panel">
           <ol class="flow-list">
-            <li><code>POST /api/migrate</code> com a URL da loja → guarde <code>job_id</code></li>
-            <li>Em loop: <code>GET /api/migrate/{job_id}</code> a cada 2–5 s até status terminal</li>
-            <li>Se <code>done</code>, use o campo <code>result</code> como JSON do cardápio</li>
-            <li>Para UX em tempo real, prefira SSE em <code>events_url</code> em vez de polling agressivo</li>
+            <li data-i18n-html="api.flow.1"></li>
+            <li data-i18n-html="api.flow.2"></li>
+            <li data-i18n-html="api.flow.3"></li>
+            <li data-i18n-html="api.flow.4"></li>
           </ol>
-          <p class="panel-desc">
-            Expondo via ngrok: defina <code>API_KEY</code> no <code>.env</code> e envie
-            <code>X-Api-Key</code> em todas as rotas protegidas (exceto <code>/api/health</code> e SSE de eventos).
-          </p>
+          <p class="panel-desc" data-i18n-html="api.flow.ngrok"></p>
         </div>
       </details>
     </section>
   </main>
 
   <footer class="site-footer">
-    <span>iFood Menu Extractor</span>
-    <a href="/docs" target="_blank" rel="noopener">OpenAPI /docs</a>
+    <span data-i18n="footer.brand">iFood Migrator</span>
+    <a href="/docs" target="_blank" rel="noopener" data-i18n="footer.openapi">OpenAPI /docs</a>
   </footer>
 
+  <script src="/static/i18n.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>
